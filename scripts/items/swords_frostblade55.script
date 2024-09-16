@@ -20,8 +20,9 @@
 	const RANGED_DMG_TYPE		pierce
 	const RANGED_STAT		spellcasting.ice
 	const RANGED_PROJECTILE	proj_icelance
-	const RANGED_AIMANGLE		(0,4,0)
-	const RANGED_STARTPOS		(8,0,0)
+	const RANGED_AIMANGLE		(0,0,0)
+	const RANGED_STARTPOS		(0,38,0)
+							  //R, F, U
 	const RANGED_PULLTIME		0.8
 	const RANGED_MP				15
 	const CIRCLE_DRAIN 40
@@ -219,7 +220,7 @@
 		if ( !DO_ATTACK ) dplayermessage ent_owner Hoarfrost Shard: Insufficient mana.
 		if ( !$get(ent_owner,canattack) )
 		{
-			dplayermessage ent_owner Can't attack now...
+			dplayermessage ent_owner "Can't attack now..."
 			local DO_ATTACK 0
 		}
 	}
@@ -246,5 +247,5 @@
 	multiply CFROST_DURATION 0.5
 	local CFROST_DAMAGE $get(ent_owner,skill.spellcasting.ice)
 	multiply CFROST_DAMAGE 1.25
-	createnpc monsters/summon/circle_of_ice_player $get(ent_owner,origin) $get(ent_owner,id) 15 5 CFROST_DAMAGE spellcasting.ice
+	createnpc monsters/summon/circle_of_ice_player $get(ent_owner,origin) $get(ent_owner,id) 15 5 CFROST_DAMAGE swordsmanship
 }

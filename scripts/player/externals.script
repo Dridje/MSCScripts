@@ -57,18 +57,13 @@
 
 	array.create ARRAY_JUMP_BEAM_IDS
 	array.create ARRAY_JUMP_BEAM_TARGS
-
-	setvard PLR_IDLE_MUSIC none
-	setvard PLR_IDLE_MUSIC_LENGTH 0
-	setvard PLR_COMBAT_MUSIC none
-	setvard PLR_COMBAT_MUSIC_LENGTH 0
-
-	setvard PLR_CURRENT_MUSIC none //set code side, but has to be init here
 }
 
 #include [casual] test_scripts/player_externals
 #include [casual] developer/player/externals
 #include [casual] $currentmap_player_externals
+
+#include items/base_vampire //Normally for items, but can be used here too for the vampire potion.
 
 { game_scriptflag_update //<action> <name> [type] [value] [base_expire_time]
 
@@ -83,33 +78,6 @@
 	else
 	{
 		nopush 0
-	}
-
-	//combat music stack
-	if ( $get_scriptflag(ent_me,cmusak,type_exists) )
-	{
-		local L_FLAG_MUSIC_VALUE $get_scriptflag(ent_me,cmusak,type_first)
-		if L_FLAG_MUSIC_VALUE isnot none
-		//dbg game_scriptflag_update found music value L_FLAG_MUSIC_VALUE current PLR_CURRENT_MUSIC
-		local L_COMBAT_MUSIC $get_token(L_FLAG_MUSIC_VALUE,1)
-		local L_COMBAT_MUSIC_LENGTH $get_token(L_FLAG_MUSIC_VALUE,0)
-		if ( PLR_CURRENT_MUSIC isnot L_COMBAT_MUSIC )
-		{
-			//dbg game_scriptflag_update CBM nowplaying L_FLAG_MUSIC_VALUE
-			setvard PLR_COMBAT_MUSIC L_COMBAT_MUSIC
-			setvard PLR_COMBAT_MUSIC_LENGTH L_COMBAT_MUSIC_LENGTH
-			playmp3 ent_me L_COMBAT_MUSIC_LENGTH L_COMBAT_MUSIC
-		}
-		else
-		{
-			//dbg game_scriptflag_update CBM skippingCBM, alerady playing L_FLAG_MUSIC_VALUE
-		}
-	}
-	else
-	{
-		if PLR_CURRENT_MUSIC equals PLR_COMBAT_MUSIC
-		//dbg game_scriptflag_update CBM outofcombatmusic - fading out
-		callevent ext_fade_music
 	}
 
 	//handle check for expire
@@ -147,26 +115,16 @@
 
 { ext_set_status_flag //<name_id> <type> <value> <expires:secs|-1> <message:msg|none>
 
-	dbg ext_set_status_flag nam PARAM1 typ PARAM2 val PARAM3 exp PARAM4 msg PARAM5
-
-	//this bit is now handled by code event game_scriptflag_added
-//	if ( PARAM4 > -1 )
-//	{
-//		local L_CHECK_TIME PARAM4
-//		add L_CHECK_TIME 0.1
-//		callevent L_CHECK_TIME check_flags_expired
-//	}
-
 	scriptflags ent_me add PARAM1 PARAM2 PARAM3 PARAM4 PARAM5
 	callevent check_flags
 }
 
 { check_flags
+
 	if ( $get_scriptflag(ent_me,mana_regen,type_exists) )
 	{
 		callevent ext_mana_regen_loop
 	}
-
 }
 
 { check_flags_expired
@@ -333,23 +291,6 @@
 	if ( ICE_SHIELDED ) setvarg ICE_SHIELD_CHECK 1
 	if ( !ICE_SHIELDED ) setvarg ICE_SHIELD_CHECK 0
 	//dbg Ice Shield Check says ( ICE_SHIELD_CHECK )
-}
-
-{ ice_shield_on
-
-	//dbg Ice Shield On ( Was ICE_SHIELDED )
-	setvard ICE_SHIELDED 1
-	if ( ICE_SHIELD_TIME equals 0 ) setvard ICE_SHIELD_TIME game.time
-	if ( ICE_SHIELD_TIME isnot 0 ) local REFRESHED_SHIELD 1
-	setvard ICE_SHIELD_TIME PARAM1
-	bplayermessage ent_me Ice shield $int(ICE_SHIELD_TIME) seconds remain.
-}
-
-{ ice_shield_off
-
-	//dbg Ice Shield Off ( Was ICE_SHIELDED )
-	setvard ICE_SHIELDED 0
-	setvard ICE_SHIELD_TIME 0
 }
 
 { effect_damage
@@ -691,8 +632,8 @@
 
 	add SCROLL_WARNING_LEVEL 1
 	if ( SCROLL_WARNING_LEVEL > 3 ) setvard SCROLL_WARNING_LEVEL 3
-	if ( SCROLL_WARNING_LEVEL == 1 ) infomsg ent_me "TOMES vs SCROLLS" "TOMES can be used to memorize spells permanently, however you can only memorize 8 such spells."
-	if ( SCROLL_WARNING_LEVEL == 2 ) infomsg ent_me "TOMES vs SCROLLS" "SCROLLS can be used to bypass this limit, but they are more expensive."
+	if ( SCROLL_WARNING_LEVEL == 1 ) infomsg ent_me "TOMES vs SCROLLS" "TOMES can be used to memorize spells permanently."
+	if ( SCROLL_WARNING_LEVEL == 2 ) infomsg ent_me "TOMES vs SCROLLS" "SCROLLS... are more expensive..."
 }
 
 { set_stun_prot
@@ -762,7 +703,7 @@
 	//setprop ent_me rendermode 5
 	//setprop ent_me renderamt 255
 
-	if ( FX_SPAMMERS < MAX_FX_SPAMMERS ) effect glow ent_me (255,0,0) 256 1.9 1.9
+	effect glow ent_me (255,0,0) 256 1.9 1.9
 
 	callevent 2.0 demon_blood_loop
 
@@ -941,25 +882,15 @@
 	//takedmg fire PLR_OLD_FIRE_RESIST
 }
 
-{ game_damaged_other
+{ game_damaged_other //PARAM1=target_hit PARAM2=dmg PARAM3=dmg_type PARAM4=dmgevent
 	
 	if ( VAMPIRE_ON )
 	{
-		if $get(PARAM1,race) isnot undead
-		if !$get(PARAM1,scriptvar,'IMMUNE_VAMPIRE')
-
-		local MY_MAX_HEALTH $get(ent_me,maxhp)
-		local MY_CUR_HEALTH $get(ent_me,hp)
-
-		if MY_CUR_HEALTH < MY_MAX_HEALTH
-
-		playsound 0 10 player/heartbeat_noloop.wav
-
 		local DMG_INFLICTED PARAM2
 		multiply DMG_INFLICTED VAMPIRE_MULTI
 		givehp DMG_INFLICTED
 
-		effect screenfade ent_me 0.5 3 (255,0,0) 50 fadeout		
+		callevent try_vampire_target $get(ent_me,id) $get(PARAM1,id) DMG_INFLICTED  //<owner> <target> <healAmt>
 	}
 
 	if ( DEMON_BLOOD )
@@ -1006,12 +937,6 @@
 	playsound 0 10 EXTPLAY_SOUND
 }
 
-{ using_lightning //Flags player to use shock_dmg with atks, PARAM1 - on off, PARAM2 - dmg multiplier
-	setvard USING_LIGHTNING PARAM1
-	setvard LIGHTNING_DMG_RATIO PARAM2
-	setvard LIGHTNING_SKILL PARAM3
-}
-
 { ext_push_targ //PARAM1=target PARAM2=vel
 
 	//all addvelocity events for player should be handled through here
@@ -1023,48 +948,13 @@
 	name PARAM1
 }
 
-{ ext_play_music //<target|all> <minutes> <file> [range]
-	dbg ext_play_music playmp3 PARAM1 PARAM2 PARAM3 PARAM4
-	//playmp3 <target|all> <minutes> <file> [range]
-	local RANGE_RESULT PARAM4
-	if ( PARAM4 equals 'PARAM4' ) local RANGE_RESULT 0
-	if ( PARAM2 isnot stop.mp3 )
-	{
-		playmp3 PARAM1 PARAM2 PARAM3 RANGE_RESULT
-	}
-	else
-	{
-		playmp3 0 stop.mp3
-		//clientcmd PARAM1 "cd fadeout"
-	}
+{ ext_play_music //<file>
+
+	playmp3 ent_me combat PARAM1 
 }
 
-{ ext_play_music_me //<minutes> <file>
-	//dbg ext_play_music playmp3 PARAM1 PARAM2 PARAM3 PARAM4
-	//playmp3 <target|all> <minutes> <file> [range]
-	if ( PARAM2 isnot stop.mp3 )
-	{
-		playmp3 ent_me PARAM1 PARAM2
-	}
-	else
-	{
-		playmp3 ent_me 0 stop.mp3
-		//clientcmd ent_me "cd fadeout"
-	}
-}
-
-//other ranged based music seems screwy, so...
-{ ext_play_music_range //<minutes> <file> <id> <range>
-	if $get(PARAM3,range) < PARAM4
-	if ( PARAM2 isnot stop.mp3 )
-	{
-		playmp3 ent_me PARAM1 PARAM2
-	}
-	else
-	{
-		playmp3 ent_me 0 stop.mp3
-		//clientcmd ent_me "cd fadeout"
-	}
+{ ext_play_music_me //<file>
+	playmp3 ent_me combat PARAM1
 }
 
 { ext_scan_radius //as getents (debuggary)
@@ -1167,21 +1057,12 @@
 	setvard PL_BEEN_ATTACKED 1
 }
 
-{ give_hp //PARAM1 = amont to give, can be negative
+{ give_hp //PARAM1 = amount to give, can be negative
 	givehp PARAM1
 }
 
-{ give_mp //PARAM1 = amont to give, can be negative
+{ give_mp //PARAM1 = amount to give, can be negative
 	givemp PARAM1
-}
-
-{ ext_usetrig //PARAM1 = external use trig for testing ent sensitive trigs
-	usetrigger PARAM1
-}
-
-{ gen_cmd
-	dbg got_gen_cmd PARAM1 PARAM2 PARAM3 PARAM4 PARAM5 PARAM6 PARAM7
-	PARAM1 PARAM2 PARAM3 PARAM4 PARAM5 PARAM6 PARAM7
 }
 
 //{ [server] ext_return_relpos //used to return position relative to others
@@ -1339,6 +1220,7 @@
 }
 
 { spider_protect_end
+	if PLR_SPIDER_PROT
 	setvard PLR_SPIDER_PROT 0
 	playermessage ent_me The protection from spider magic fades.
 }
@@ -1416,10 +1298,57 @@
 
 //new parry system
 //on hold, code work to be done
+{ ext_set_swift_blade
+	setvard PLR_SWIFT_BLADE PARAM1
+}
+
+{ game_equipped //<handIdx> <itemID> //Called from code when a player puts an item in their hands, or when active item hands are swapped.
+	callevent ext_set_hand_id $get(PARAM1,hand_index) $get(PARAM1,id)
+}
+
+{ ext_set_hand_id //<hand> <id> //Called by game_equipped above. Also called by base_item_extras when items are removed from the players hands. 
+	
+	local L_HAND_DEST PARAM1 //Hand index to where the item is trying to go
+	local L_ITEM_ID PARAM2
+	
+	local L_HANDPREF $get(L_ITEM_ID,handpref) //0: item wants to go in left hand. 1: item wants to go in right hand. 2: fist_bare. 3: arrow or potion (1 handed). 4: two handed item
+	
+	if ( L_HAND_DEST == 0 ) //Left hand
+	{
+		setvard PLR_LEFT_HAND L_ITEM_ID
+	}
+	else if ( L_HAND_DEST == 1 ) //Right hand / Two handed
+	{
+		setvard PLR_RIGHT_HAND L_ITEM_ID
+		
+		//In this case, it might be two handed, so check handpref too.
+		if ( L_HANDPREF == 4 ) //Is two handed?
+		{
+			setvard PLR_LEFT_HAND 0
+		}
+	}
+	else if ( L_HAND_DEST == 2 ) //fist_bare
+	{
+		setvard PLR_LEFT_HAND L_ITEM_ID
+		setvard PLR_RIGHT_HAND L_ITEM_ID
+	}
+
+	setvard PLR_ACTIVE_WEAPON L_ITEM_ID
+	if ( $get(PLR_ACTIVE_WEAPON,scriptvar,'SPECIAL_WEAPON') )
+	{
+		setvard PLR_SPECIAL_WEAPON 1
+	}
+	else
+	{
+		setvard PLR_SPECIAL_WEAPON 0
+	}
+
+	callevent update_parry //Update parry
+	callevent set_two_hand //Update dual-wield penalty
+	callevent 0.25 set_swift_blade //Set item swift blade, if active
+}
 
 { update_parry
-
-	//dbg update_parry
 
 	local PARRY_MULTI 1.0
 
@@ -1429,7 +1358,7 @@
 	local LEFT_PARRY $get(ent_me,LEFT_PARRY_SKILL)
 	//dbg lefthand hpref $get(PLR_LEFT_HAND,handpref) val LEFT_PARRY
 	if ( $get(PLR_LEFT_HAND,handpref) == 2 ) local LEFT_PARRY 0 //is bare fist
-	if ( $get(PLR_LEFT_HAND,handpref) == 4 )
+	if ( $get(PLR_LEFT_HAND,handpref) == 4 ) //If is two handed
 	{
 		if LEFT_PARRY_SKILL isnot skill.martialarts
 		multiply LEFT_PARRY 1.5 //is two handed and not gauntlet
@@ -1477,13 +1406,8 @@
 	local OLD_PARRY PL_PARRY
 	setvard PL_PARRY TOTAL_PARRY
 
-
-	consolemsg ent_me Parry_Value: ( left_v: $int(LEFT_PARRY) ) ( right_v: $int(RIGHT_PARRY) ) ( multi: PARRY_MULTI ) = TOTAL_PARRY
 	if ( OLD_PARRY != PL_PARRY ) yplayermessage ent_me Your Parry value is now TOTAL_PARRY
 	setstat parry TOTAL_PARRY
-
-	callevent 0.5 set_two_hand
-	callevent 1.0 set_swift_blade
 }
 
 { set_two_hand
@@ -1491,46 +1415,18 @@
 	local PLR_LEFT_HAND_TYPE $get(PLR_LEFT_HAND,itemname)
 	local PLR_RIGHT_HAND_TYPE $get(PLR_RIGHT_HAND,itemname)
 	
-	dbg set_two_hand r PLR_LEFT_HAND_TYPE l PLR_RIGHT_HAND_TYPE
-	if ( PLR_LEFT_HAND_TYPE startswith bows_ )
-	{
-		if PLR_RIGHT_HAND_TYPE startswith bows_
-		local L_NO_REDUCT 1
-	}
-	if ( PLR_LEFT_HAND_TYPE startswith shield ) local L_NO_REDUCT 1
-	if ( PLR_RIGHT_HAND_TYPE startswith shield ) local L_NO_REDUCT 1
-	if ( PLR_RIGHT_HAND_TYPE startswith magic_hand_ ) local L_NO_REDUCT 1
-	if ( PLR_LEFT_HAND_TYPE startswith magic_hand_ ) local L_NO_REDUCT 1
-	if ( $get(PLR_LEFT_HAND,handpref) == 2 ) local L_NO_REDUCT 1 //bare fist
-	if ( $get(PLR_RIGHT_HAND,handpref) == 2 ) local L_NO_REDUCT 1 //bare fist
-	if ( PLR_RIGHT_HAND_TYPE contains gauntlet ) local L_NO_REDUCT 1
-	if ( PLR_LEFT_HAND equals PLR_RIGHT_HAND ) local L_NO_REDUCT 1
-	if ( PLR_LEFT_HAND equals 0 ) local L_NO_REDUCT 1 //empty
-	if ( PLR_RIGHT_HAND equals 0 ) local L_NO_REDUCT 1 //empty
-	if ( PLR_RIGHT_HAND_TYPE startswith item ) local L_NO_REDUCT 1 //off hand not a weapon
-	if ( PLR_RIGHT_HAND_TYPE startswith item ) local L_NO_REDUCT 1 //off hand not a weapon
-	if ( PLR_RIGHT_HAND_TYPE startswith mana ) local L_NO_REDUCT 1 //off hand not a weapon
-	if ( PLR_RIGHT_HAND_TYPE startswith mana ) local L_NO_REDUCT 1 //off hand not a weapon
-	if ( PLR_RIGHT_HAND_TYPE startswith health ) local L_NO_REDUCT 1 //off hand not a weapon
-	if ( PLR_RIGHT_HAND_TYPE startswith health ) local L_NO_REDUCT 1 //off hand not a weapon
+	local L_NO_REDUCT $func(func_get_dualwield_reduct,PLR_LEFT_HAND_TYPE) //Get if there should be dual wield reduction
+	if ( !L_NO_REDUCT ) local L_NO_REDUCT $func(func_get_dualwield_reduct,PLR_RIGHT_HAND_TYPE) //Same for other item in other hand
 
+	setvard PLR_HAS_MATCHED_SET 0
 	if ( $get(PLR_RIGHT_HAND,scriptvar,'MATCHED_SET') )
 	{
 		local L_MATCHED_SET_TYPE $get(PLR_RIGHT_HAND,scriptvar,'MATCHED_SET_TYPE')
 		if ( $get(PLR_LEFT_HAND,scriptvar,'MATCHED_SET_TYPE') equals L_MATCHED_SET_TYPE )
 		{
-			local L_MATCHED_SET 1
 			local L_NO_REDUCT 1
 			setvard PLR_HAS_MATCHED_SET 1
 		}
-		else
-		{
-			setvard PLR_HAS_MATCHED_SET 0
-		}
-	}
-	else
-	{
-		setvard PLR_HAS_MATCHED_SET 0
 	}
 
 	if ( !L_NO_REDUCT )
@@ -1575,6 +1471,27 @@
 			setvard PLR_HAD_MATCHED_SET 0
 		}
 	}
+}
+
+{ func_get_dualwield_reduct //<scriptname> //Returns 1 or 0 depending on whether or not the weapon has dual wield penalty
+
+	local L_ITEM PARAM1
+	local L_NO_REDUCT 0
+	
+	if ( L_ITEM startswith 'bows_' ) local L_NO_REDUCT 1
+	else if ( L_ITEM startswith 'shield' ) local L_NO_REDUCT 1
+	else if ( L_ITEM startswith 'armor_' ) local L_NO_REDUCT 1
+	else if ( L_ITEM startswith 'magic_hand_' ) local L_NO_REDUCT 1
+	else if ( L_ITEM startswith 'fist_' ) local L_NO_REDUCT 1 //bare fist
+	else if ( L_ITEM contains 'gauntlet' ) local L_NO_REDUCT 1
+	else if ( L_ITEM equals '0' ) local L_NO_REDUCT 1 //empty
+	else if ( L_ITEM startswith 'item' ) local L_NO_REDUCT 1 //off hand not a weapon
+	else if ( L_ITEM startswith 'mana' ) local L_NO_REDUCT 1 //off hand not a weapon
+	else if ( L_ITEM startswith 'health' ) local L_NO_REDUCT 1 //off hand not a weapon
+	else if ( L_ITEM startswith 'skin' ) local L_NO_REDUCT 1 //off hand not a weapon
+
+	return **clear
+	return L_NO_REDUCT
 }
 
 { set_swift_blade
@@ -1630,73 +1547,6 @@
 
 	attackprop ACTIVE_WEAPON 0 delay.end CUR_SPEED
 	attackprop ACTIVE_WEAPON 0 delay.strike CUR_STRIKE
-}
-
-{ ext_set_swift_blade
-	setvard PLR_SWIFT_BLADE PARAM1
-}
-
-{ game_equipped
-	//dbg game_equipped $get(PARAM1,name) [ in hand PARAM2 ] [ $get(PARAM1,hand_index) ]
-	if ( G_DEVELOPER_MODE ) callevent 1.0 report_hands
-	callevent ext_set_hand_id $get(PARAM1,hand_index) $get(PARAM1,id)
-
-	if G_DEVELOPER_MODE
-	local L_H0 $get(ent_me,hand0)
-	local L_H1 $get(ent_me,hand1)
-
-	local L_H0 $get(L_H0,itemname)
-	local L_H1 $get(L_H1,itemname)
-
-	dbg game_equipped h0: L_H0 h1: L_H1
-	gplayermessage G_DEV_PLAYER h0: L_H0 h1: L_H1
-
-}
-
-{ ext_set_hand_id //<hand> <id>
-
-	//dbg ext_set_hand_id PL_ACTIVE_SKILL
-
-	//dbg ext_set_hand_id $get(PARAM2,itemname)
-
-	//dbg Got_hand PARAM1 id PARAM2
-	setvard PL_ACTIVE_SKILL $get(PARAM2,scriptvar,'WEAPON_PRIMARY_SKILL')
-	if ( PARAM1 equals 0 )
-	{
-		setvard PLR_RIGHT_HAND PARAM2
-		callexternal PLR_LEFT_HAND ext_off_hand_change PLR_RIGHT_HAND
-	}
-	if ( PARAM1 equals 1 )
-	{
-		setvard PLR_LEFT_HAND PARAM2
-		callexternal PLR_RIGHT_HAND ext_off_hand_change PLR_LEFT_HAND
-	}
-	if ( PARAM1 equals 2 )
-	{
-		setvard PLR_LEFT_HAND PARAM2
-		setvard PLR_RIGHT_HAND PARAM2
-		callexternal PLR_RIGHT_HAND ext_off_hand_change
-	}
-
-	if ( PARAM1 equals 3 )
-	{
-		if ( PLR_LEFT_HAND isnot PLR_RIGHT_HAND ) callexternal PLR_RIGHT_HAND ext_off_hand_change PLR_RIGHT_HAND
-		if ( PLR_RIGHT_HAND isnot PLR_LEFT_HAND ) callexternal PLR_LEFT_HAND ext_off_hand_change PLR_RIGHT_HAND
-	}
-
-	//dbg ext_set_hand_id PL_ACTIVE_SKILL SPECIAL_WEAPON
-	setvard PLR_ACTIVE_WEAPON PARAM2
-	if ( $get(PLR_ACTIVE_WEAPON,scriptvar,'SPECIAL_WEAPON') )
-	{
-		setvard PLR_SPECIAL_WEAPON 1
-	}
-	else
-	{
-		setvard PLR_SPECIAL_WEAPON 0
-	}
-
-	//dbg ext_set_hand_id update_parry
-	callevent 0.1 update_parry
 }
 
 { ext_sphere_token_x //TYPE_SCAN SCAN_RANGE
@@ -1920,7 +1770,6 @@
 	playsound 0 10 magic/spawn.wav
 	setorigin $get(ent_me,id) PARAM1
 	if ( G_DEVELOPER_MODE ) gplayermessage ent_me ext_send_tele_point PARAM1
-	if FX_SPAMMERS < MAX_FX_SPAMMERS
 	setvard OWNER_POS PARAM1
 	calleventloop 18 beam_fx2
 }
@@ -1960,10 +1809,6 @@
 
 { ext_set_reward
 	setvard PLR_GOT_REWARD PARAM1
-}
-
-{ ext_dridje_sphere
-	setvard PLR_DRIDJE_SPHERE PARAM1
 }
 
 { game_drain_death //PARAM1 = drainer
@@ -2022,13 +1867,9 @@
 
 	//dbg ext_set_map PARAM1 PARAM2 PARAM3
 
-	if ( game.time > 5.0 )
-	{
-		quest set ent_me m $lcase(PARAM1)
-		quest set ent_me d PARAM2 //actually using local trans, next trans set on map change
-		settrans PARAM2
-	}
-	setvard PLR_NEXT_TRANSITION PARAM3
+	quest set ent_me m $lcase(PARAM1)
+	quest set ent_me d PARAM2 //actually using local trans, next trans set on map change
+	settrans ent_me PARAM2
 
 	setvard PLR_CUR_TRANS PARAM2
 	setvard PLR_NEXT_TRANS PARAM3
@@ -2036,11 +1877,16 @@
 	callevent 0.1 ext_set_transitions
 }
 
+{ ext_setspawn //<spawn_name>
+	dbg ext_setspawn PARAM1
+	settrans ent_me PARAM1
+	quest set ent_me d PARAM1
+}
+
 { ext_set_transitions
-	dbg settrans PLR_CUR_TRANS PLR_NEXT_TRANS
+	//dbg settrans PLR_CUR_TRANS PLR_NEXT_TRANS
 	if PLR_IN_WORLD
 	settrans ent_me PLR_CUR_TRANS
-	setvarg G_FIRST_TRANS PLR_NEXT_TRANS
 }
 
 
@@ -3252,11 +3098,11 @@
 	if ( G_SORCV_FRIENDLY )
 	{
 		//haunted_desert.mp3
-		playmp3 ent_me 8.0 music/PathAnubis.mp3
+		playmp3 ent_me combat music/PathAnubis.mp3
 	}
 	else
 	{
-		playmp3 ent_me 4.0 music/crimson_field.mp3
+		playmp3 ent_me combat music/crimson_field.mp3
 	}
 }
 
@@ -3265,17 +3111,17 @@
 
 	if ( G_SORCV_FRIENDLY )
 	{
-		playmp3 ent_me 8.0 music/haunted_desert.mp3
+		playmp3 ent_me combat music/haunted_desert.mp3
 	}
 	else
 	{
-		playmp3 ent_me 4.0 music/crimson_field.mp3
+		playmp3 ent_me combat music/crimson_field.mp3
 	}
 }
 
 { ext_stop_music
-	dbg ext_stop_music
-	playmp3 ent_me 0 stop.mp3
+
+	playmp3 ent_me stop
 }
 
 { ext_svilla_hostile
@@ -3526,14 +3372,14 @@
 	if ( PARAM1 == 1 )
 	{
 		setvard PLR_ORCFOR_MUSIC 1
-		playmp3 ent_me 0.85 music/seruboss1.mp3
+		playmp3 ent_me combat music/seruboss1.mp3
 	}
 
 	if ( PARAM1 == 2 )
 	{
 		if PLR_ORCFOR_MUSIC != 2
 		setvard PLR_ORCFOR_MUSIC 2
-		playmp3 ent_me 1.2 music/seruboss2.mp3
+		playmp3 ent_me combat music/seruboss2.mp3
 	}
 
 	if ( PARAM1 == 3 )
@@ -3541,70 +3387,24 @@
 		local MY_ORG $get(ent_me,origin)
 		local BOSS_ORG PARAM2
 		if $dist(MY_ORG,BOSS_ORG) < 768
-		playmp3 ent_me 0 stop.mp3
+		playmp3 ent_me stop
 	}
 }
 
 { ext_gabe_musak //<stage> [boss_org]
 	if ( PARAM1 equals stop )
 	{
-		playmp3 ent_me 0 stop.mp3
-		playsound 0 10 gabe_loop.wav
+		playmp3 ent_me stop
 	}
 	else
 	{
-		playmp3 ent_me 0.8 music/gabe1.mp3
+		playmp3 ent_me combat music/gabe1.mp3
 	}
 }
-
-//{ ext_bomb_test
-//	tossprojectile view 500 400 0 proj_fire_bomb (0,64,32)
-//}
-//
-//{ ext_acid_bomb //<land point>
-//	setvard ACID_TARGS $get_tsphere(enemy,256,PARAM1)
-//	if ACID_TARGS isnot none
-//	calleventloop $get_token_amt(ACID_TARGS) acid_bomb_affect_targs
-//}
-//
-//{ acid_bomb_affect_targs
-//	local CUR_TARG $get_token(ACID_TARGS,game.script.iteration)
-//	applyeffect CUR_TARG effects/effect_acid 5 $get(ent_me,id) 150
-//	xdodamage CUR_TARG direct 50 100% ent_me ent_me spellcasting.affliction acid
-//}
 
 { ext_changelevel_prep
 	callevent ext_weather_force_change clear
 }
-
-//dont need this - xdodamage registers on weapons
-//{ ext_fire_staff1 //<rad> <scan_point>
-//	local L_RADIUS PARAM1
-//	setvard PLR_STAFF_BURN_ORG PARAM2
-//	setvard PLR_STAFF_BURN_TARGS $get_tsphere(enemy,L_RADIUS,PLR_STAFF_BURN_ORG)
-//	if PLR_STAFF_BURN_TARGS isnot none
-//	setvard GAME_PVP game.pvp
-//	setvard PLR_STAFF_DMG $get(ent_me,skill.spellcasting.fire)
-//	multiply PLR_STAFF_DMG 0.5
-//	calleventloop $get_token_amt(PLR_STAFF_BURN_TARGS) ext_fire_staff_affect_targs
-//}
-//
-//{ ext_fire_staff_affect_targs
-//	local CUR_TARG $get_token(PLR_STAFF_BURN_TARGS,game.script.iteration)
-//	if ( !GAME_PVP )
-//	{
-//		if $get(CUR_TARG,isplayer)
-//		local EXIT_SUB 1
-//	}
-//	if !EXIT_SUB
-//
-//	local TRACE_START PLR_STAFF_BURN_ORG
-//	local TRACE_END $get(CUR_TARG,origin)
-//	local TRACE_LINE $get_traceline(TRACE_START,TRACE_END,worldonly)
-//	if TRACE_LINE equals TRACE_END
-//
-//	applyeffect CUR_TARG effects/effect_burn 5.0 $get(ent_me,id) PLR_STAFF_DMG
-//}
 
 { ext_bank_lock
 	applyeffect ent_me effects/effect_templock $get(ent_me,id)
@@ -3614,16 +3414,6 @@
 { ext_bank_lock_release
 	callevent ext_remove_lock
 }
-
-{ ext_keldorn_troll
-	if !$item_exists(ent_me,scroll2_trollcano)
-	callexternal GAME_MASTER gm_keldorn_troll $get(ent_me,id)
-}
-
-//fail
-//{ ext_leg_lock //<0|1> - lock player leg anims
-//	setvard PLR_LEG_LOCK PARAM1
-//}
 
 { ext_alance_init
 	setvard GAME_PVP game.pvp
@@ -3986,7 +3776,7 @@
 	setvard PLR_EPILEPSY_ACTIVE 1
 	setvard PLR_EPILEPSY_COUNT 0
 	setvard PLR_EPILEPSY_DELAY 0.5
-	playmp3 ent_me 5.0 music/b-b-b-beetlejuice.mp3
+	playmp3 ent_me combat music/b-b-b-beetlejuice.mp3
 	callevent 0.25 epilepsy_loop
 	hud.addimgicon ent_me bepilepsy1 bepilepsy1 15 20 75 60 4.0
 }
@@ -4011,7 +3801,7 @@
 }
 
 { ext_epilepsy_time_end
-	playmp3 ent_me 5.0 UndeadX1Fortress.mp3
+	playmp3 ent_me combat UndeadX1Fortress.mp3
 }
 
 { ext_summon_register_pet //<id>
@@ -4120,20 +3910,6 @@
 	//setvard PLR_LESSER_LEADFOOT_RATIO PARAM1 //not used, but ucomment if you need it
 	setvard PLR_LESSER_LEADFOOT_STUN PARAM2 
 	if ( !$get(ent_me,nopush) ) gplayermessage ent_owner Your stun resistance is now PLR_IMMUNE_STUN
-}
-
-{ ext_toggle_halo
-	if PLR_HAS_HALO
-	if ( PLR_HALO_ON )
-	{
-		setvard PLR_HALO_ON 0
-		clientevent update all const.localplayer.scriptID cl_set_halo 0 $get(ent_me,index)
-	}
-	else
-	{
-		setvard PLR_HALO_ON 1
-		clientevent update all const.localplayer.scriptID cl_set_halo 1 $get(ent_me,index)
-	}
 }
 
 { ext_delay_playsound //<delay> <chan> <vol> <wave>
@@ -4247,32 +4023,6 @@
 	hud.addimgicon ent_me PARAM1 PARAM2 PARAM3 PARAM4 PARAM5 PARAM6 PARAM7
 }
 
-//checks out fine here *shrug*
-//{ ext_tracetest
-//	dbg ext_tracetest enter
-//	local TRACE_START $get(ent_me,origin)
-//	local TRACE_END TRACE_START
-//	local VIEW_ANGS $get(ent_me,viewangles)
-//	vectoradd TRACE_END $relpos(VIEW_ANGS,$vec(0,1000,0))
-//	local TRACE_DIR $dir(TRACE_START,TRACE_END)
-//	vectormultiply TRACE_DIR 64
-//	vectoradd TRACE_START TRACE_DIR
-//
-//	local DO_TRACE $get_traceline(TRACE_START,TRACE_END,ent)
-//	effect beam point lgtning.spr 20 TRACE_START TRACE_END (255,0,255) 200 0 1.0
-//	dbg ext_tracetest DO_TRACE $get(DO_TRACE,name)
-//}
-//
-//{ ext_test_rep
-//	gplayermessage ent_me "¿¡¬ƒ≈∆"
-//	consolemsg ent_me "¿¡¬ƒ≈∆"
-//	infomsg ent_me "¿¡¬ƒ≈∆" "¿¡¬ƒ≈∆"
-//}
-//
-//{ ext_retest //<effect_id>
-//	removeeffect ent_me effect_iceshield
-//}
-
 { ext_shender_telfdoor
 	dbg ext_shender_telfdoor PLR_DID_SHENDER_EVENT
 	callevent ext_darkenbloom 2
@@ -4283,95 +4033,6 @@
 		if $get(GAME_MASTER,scriptvar,'GM_BUNNY_KILLED')
 		setvard PLR_DID_SHENDER_EVENT 1
 		callexternal WIN_ELF ext_bunny_comment
-	}
-}
-
-{ ext_music_combat //<add|remove> <caller_index> [music_length] [music_file]
-	setvard PLR_COMBAT_MUSIC_ACTIVE 1
-	//dbg ext_music_combat globals G_COMBAT_MUSIC G_COMBAT_MUSIC setvards PLR_COMBAT_MUSIC PLR_COMBAT_MUSIC_LENGTH
-	local L_CALLER $get_by_idx(PARAM2,id)
-	dbg ext_music_combat PARAM1 PARAM2 PARAM3 PARAM4 ( from $get(L_CALLER,name) )
-	local FLAG_NAME cmusak
-	stradd FLAG_NAME $int(PARAM2)
-
-	//shouldn't happen, but checking
-	if ( PARAM4 equals none )
-	{
-		dbg ext_music_combat got none!
-	}
-
-	if ( PARAM1 equals add )
-	{
-		if ( !$get_scriptflag(ent_me,FLAG_NAME,name_exists) )
-		{
-			local L_MUSIC_LENGTH PARAM3
-			local L_MUSIC_FILE PARAM4
-			if ( PARAM3 startswith 'PARAM' )
-			{
-				//no combat music supplied, see if we have some, if not, use globals
-				//if globals aren't set either, we're fucktarded
-				if ( PLR_COMBAT_MUSIC_LENGTH == 0 )
-				{
-					dbg ext_music_combat usingglobals
-					setvard PLR_COMBAT_MUSIC_LENGTH G_COMBAT_MUSIC_LENGTH
-					setvard PLR_COMBAT_MUSIC G_COMBAT_MUSIC
-				}
-
-				local L_MUSIC_LENGTH PLR_COMBAT_MUSIC_LENGTH
-				local L_MUSIC_FILE PLR_COMBAT_MUSIC
-			}
-			local L_MUSIC_VALUE L_MUSIC_LENGTH
-			stradd L_MUSIC_VALUE ";"
-			stradd L_MUSIC_VALUE L_MUSIC_FILE
-			dbg ext_music_combat add FLAG_NAME value L_MUSIC_VALUE
-			scriptflags ent_me add FLAG_NAME cmusak L_MUSIC_VALUE
-		}
-		else
-		{
-			dbg ext_music_combat already have music tag FLAG_NAME [ PARAM4 ]
-		}
-	}
-	else
-	{
-		local L_VALUE $get_scriptflag(ent_me,FLAG_NAME,name_value)
-		dbg ext_music_combat delayremove FLAG_NAME L_VALUE
-		scriptflags ent_me edit FLAG_NAME cmusak L_VALUE 8.0
-	}
-}
-
-{ ext_fade_music
-	setvard PLR_FADING_MUSIC 0
-	//if ( $get_scriptflag(ent_me,cmusak,type_exists) ) dbg ext_fade_music CBM abort fade to idle, re-entered combat
-	if !$get_scriptflag(ent_me,cmusak,type_exists) //case we got into combat again
-	//clientcmd ent_me "cd fadeout"
-	if ( PLR_IDLE_MUSIC isnot PLR_CURRENT_MUSIC )
-	{
-		dbg ext_fade_music fading music in prep for idle
-		playmp3 ent_me 0 stop.mp3
-	}
-	callevent 3.0 ext_music_idle
-}
-
-{ ext_music_idle
-	dbg ext_music_idle
-	//if ( $get_scriptflag(ent_me,cmusak,type_exists) ) dbg ext_music_idle CBM abort idle, re-entered combat
-	if !$get_scriptflag(ent_me,cmusak,type_exists) //case we got into combat again
-	if ( PLR_IDLE_MUSIC_LENGTH != 0 )
-	{
-		if ( PLR_IDLE_MUSIC isnot PLR_CURRENT_MUSIC )
-		{
-			dbg ext_music_idle playing PLR_IDLE_MUSIC PLR_IDLE_MUSIC_LENGTH
-			playmp3 ent_me PLR_IDLE_MUSIC_LENGTH PLR_IDLE_MUSIC
-		}
-		else
-		{
-			dbg ext_music_idle abort, already plying PLR_IDLE_MUSIC
-		}
-	}
-	else
-	{
-		dbg ext_music_idle zero length idle, stopping music
-		playmp3 ent_me 0 stop.mp3
 	}
 }
 
@@ -4387,72 +4048,6 @@
 	conflictcheck dumpvars
 }
 
-{ set_music //<idle_file> <idle_length> <combat_file> <combat_length> [play_now:0=neither|1=idle|2=combat]
-	setvard PLR_IDLE_MUSIC PARAM1
-	setvard PLR_IDLE_MUSIC_LENGTH PARAM2
-	setvard PLR_COMBAT_MUSIC PARAM3
-	setvard PLR_COMBAT_MUSIC_LENGTH PARAM4
-	dbg set_music PARAM1 PARAM2 PARAM3 PARAM4 PARAM5
-
-	if ( PARAM5 == 1 )
-	{
-		if ( $get_scriptflag(ent_me,type_exists,cmusak) )
-		{
-			callevent set_end_combat_music
-		}
-		else
-		{
-			if ( PLR_IDLE_MUSIC_LENGTH != 0 )
-			{
-				callevent ext_music_idle
-			}
-		}
-	}
-
-	if ( PARAM5 == 2 ) playmp3 ent_me PLR_COMBAT_MUSIC_LENGTH PLR_COMBAT_MUSIC
-}
-
-{ set_combat_music //<file> <length> [forcenow:0|1]
-	//can't have a "play_now" option, as it wouldn't know when to stop
-	setvard PLR_COMBAT_MUSIC PARAM1
-	setvard PLR_COMBAT_MUSIC_LENGTH PARAM2
-	dbg set_combat_music PLR_COMBAT_MUSIC PLR_COMBAT_MUSIC_LENGTH
-	if PARAM3
-	if PLR_CURRENT_MUSIC isnot PLR_COMBAT_MUSIC
-	callevent ext_play_music $get(ent_me,id) PLR_COMBAT_MUSIC_LENGTH PLR_COMBAT_MUSIC
-}
-
-{ set_cbm //alias for set_combat_music
-	dbg set_cbm
-	local L_PASS1 PARAM1
-	local L_PASS2 PARAM2
-	local L_PASS3 PARAM3
-	callevent set_combat_music L_PASS1 L_PASS2 L_PASS3
-}
-
-{ set_idle_music //<file> <length> [play_now:0|1]
-	setvard PLR_IDLE_MUSIC PARAM1
-	setvard PLR_IDLE_MUSIC_LENGTH PARAM2
-	//dbg set_idle_music PARAM1 PARAM2 PARAM3
-	if PARAM3 == 1
-	if ( $get_scriptflag(ent_me,type_exists,cmusak) )
-	{
-		callevent set_end_combat_music
-	}
-	else
-	{
-		if ( PLR_IDLE_MUSIC_LENGTH != 0 )
-		{
-			callevent ext_music_idle
-		}
-	}
-}
-
-{ set_end_combat_music
-	dbg set_end_combat_music
-	scriptflags ent_me cleartype cmusak
-}
-
 { ext_svplaysound_kiss
 	dbg ext_svplaysound_kiss PARAM1 PARAM2 PARAM3 PARAM4 PARAM5
 	svplaysound PARAM1 PARAM2 PARAM3 PARAM4 PARAM5
@@ -4461,10 +4056,6 @@
 { ext_clear_valid_gauntlets //reset gauntlet validator when final boss killed
 	quest set ent_me mv 0
 	quest set ent_me m 0
-}
-
-{ ext_dump_quests
-	quest dump ent_me
 }
 
 { ext_dump_bank
@@ -4548,32 +4139,6 @@
 		givemp L_MAX_MP
 	}
 }
-
-{ game_music //<song> <length> [1=from msarea_music]
-
-	if ( PLR_CURRENT_MUSIC !equals PLR_PREV_MUSIC )
-	{
-		setvard PLR_PREV_MUSIC PLR_CURRENT_MUSIC
-		setvard PLR_PREV_MUSIC_LENGTH PLR_CURRENT_MUSIC_LENGTH
-	}
-	setvard PLR_CURRENT_MUSIC PARAM1
-	setvard PLR_CURRENT_MUSIC_LENGTH PARAM2
-
-	dbg game_music PARAM1 PARAM2 PARAM3 PARAM4 PARAM5
-
-	if PARAM3
-	dbg game_music msarea_music
-	setvard PLR_IDLE_MUSIC PLR_CURRENT_MUSIC
-	setvard PLR_IDLE_MUSIC_LENGTH PLR_CURRENT_MUSIC_LENGTH
-}
-
-//{ ext_beam_follow_test
-//	dbg beam_follow_test
-//	effect beam follow lgtning.spr ent_me 0 1 10.0 255 (255,0,0)
-//	effect beam follow lgtning.spr ent_me 1 1 10.0 255 (255,0,255)
-//	effect beam follow lgtning.spr ent_me 2 1 10.0 255 (255,255,0)
-//	effect beam follow lgtning.spr ent_me 3 1 10.0 255 (255,255,255)
-//}
 
 { ext_seal_test //<type>
 	local L_SEAL_ORG $get(ent_me,origin)
@@ -4712,7 +4277,6 @@
 		quest set ent_me b8 0
 		quest set ent_me b9 0
 		consolemsg ent_me Your Galat Chest bank strings have been reset.
-		consolemsg ent_me Please wait a few moments before disconnecting.
 	}
 }
 
@@ -4732,78 +4296,9 @@
 		if $get_scriptflag(ent_me,combat,type_exists)
 		hud.addstatusicon ent_me PLR_COMBAT_ICON combat 9999
 		bplayermessage ent_me "!!!!!! entered combat !!!!!!"
-
 	}
 
 	setvard PLR_IN_COMBAT 1
-
-	if !$get(L_NPC,scriptvar,'NPC_NOT_MUSICAL')
-
-	if ( $get(L_NPC,scriptvar,'NPC_CUSTOM_COMBAT_MUSIC') )
-	{
-		local L_NPC_HAS_CUSTOM 1
-		setvard PLR_COMBAT_MUSIC $get(L_NPC,scriptvar,'NPC_CMUSIC_FILE')
-		setvard PLR_COMBAT_MUSIC_LENGTH $get(L_NPC,scriptvar,'NPC_CMUSIC_LENGTH')
-		if ( PLR_CURRENT_MUSIC isnot PLR_COMBAT_MUSIC )
-		{
-			callevent set_end_combat_music
-		}
-		setvard PLR_CBM_CUSTOM PLR_COMBAT_MUSIC
-		setvard PLR_CBM_CUSTOM_STARTER L_NPC
-	}
-
-	if ( PLR_CURRENT_MUSIC isnot PLR_COMBAT_MUSIC )
-	{
-		//new combat music, clear previous tags
-		if !L_NPC_HAS_CUSTOM //Ive already added my custom music, no need to go here
-
-		if ( PLR_CBM_CUSTOM equals PLR_CURRENT_MUSIC )
-		{
-			if $get(PLR_CBM_CUSTOM_STARTER,isalive)
-			local L_NO_REDEFINE 1 //custom music mob is alive and playing, don't change music
-		}
-
-		if ( !L_NO_REDEFINE )
-		{
-			if ( G_COMBAT_MUSIC isnot none )
-			{
-				if PLR_COMBAT_MUSIC equals none
-				setvard PLR_COMBAT_MUSIC G_COMBAT_MUSIC
-				setvard PLR_COMBAT_MUSIC_LENGTH G_COMBAT_MUSIC_LENGTH
-			}
-			if ( PLR_COMBAT_MUSIC isnot none )
-			{
-				dbg ext_targeted_by_mob plr music is not current combat music, clearing
-				callevent set_end_combat_music
-			}
-			else
-			{
-				dbg ext_targeted_by_mob no combat music defined on player or map, aborting
-				local EXIT_SUB 1
-			}
-		}
-		else
-		{
-			dbg ext_targeted_by_mob plr is playing custom mob music, no clearing
-		}
-	}
-	if !EXIT_SUB
-
-	if ( $get(PLR_CBM_CUSTOM_STARTER,isalive) )
-	{
-		//abort new combat music, if current custom from living custom mob
-		if !L_NPC_HAS_CUSTOM //no need to go here if I added custom combat music
-		if ( PLR_CURRENT_MUSIC equals PLR_CBM_CUSTOM )
-		{
-			//don't add my tag, if player is currently playing custom cbm music
-			dbg ext_targeted_by_mob player using custom combat music from marked npc, but I not marked, not adding
-			local EXIT_SUB 1
-		}
-	}
-	if !EXIT_SUB
-
-	if PLR_COMBAT_MUSIC isnot none
-	callevent ext_music_combat add $get(L_NPC,index) PLR_COMBAT_MUSIC_LENGTH PLR_COMBAT_MUSIC
 }
 
 { ext_untargeted_by_mob //<targeter>
@@ -4821,21 +4316,6 @@
 			hud.killstatusicon ent_me combat
 		}		
 		setvard PLR_IN_COMBAT 0
-	}
-
-	dbg ext_untargeted_by_mob $get(PARAM1,name)
-
-	if !$get(L_NPC,scriptvar,'NPC_NOT_MUSICAL')
-
-	local L_MUSIC_TAG cmusak
-	stradd L_MUSIC_TAG $int($get(L_NPC,index))
-	if ( $get_scriptflag(ent_me,L_MUSIC_TAG,name_exists) )
-	{
-		callevent ext_music_combat remove $get(L_NPC,index)
-	}
-	else
-	{
-		dbg ext_untargeted_by_mob not found L_MUSIC_TAG
 	}
 }
 
@@ -5009,11 +4489,6 @@
 //	}
 //}
 
-{ npc_suicide
-	//just here so ya know ya got the event
-	dbg got npc_suicide
-}
-
 { ext_speak //<"text">
 	//saytextrange 2048
 	saytext PARAM1
@@ -5106,10 +4581,6 @@
 
 { ext_quake_fx_end
 	svplaysound 2 0 magic/volcano_loop.wav
-}
-
-{ ext_teleportdest
-	teleportdest PARAM1 PARAM2
 }
 
 { ext_iexist_test

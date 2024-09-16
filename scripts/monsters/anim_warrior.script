@@ -45,13 +45,14 @@
 }
 
 #include monsters/base_monster
-#include monsters/base_turn_undead
+
 
 { npc_spawn
 
 	name Animated armor
 	roam 1
 	race demon
+	blood none
 	width 40
 	hp 275
 	height 90

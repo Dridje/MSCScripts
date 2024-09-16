@@ -1,0 +1,96 @@
+//Handles map transitions and systems based on transitioning.
+
+//Handles prep for transitioning to new map
+//-Calls appropriate events on players to make sure their flags get set correctly
+//-Displays messages relating to map changes
+
+{ game_transition_triggered //1: Transition_desc //2: DestBSP //3: local_spawn //4: dest_spawn //called when player activates a transition
+
+	local L_MAP_TITLE PARAM1
+	local L_MAP PARAM2
+	local L_LOCAL_TRANS PARAM3
+	setvard GM_DEST_TRANS PARAM4
+
+	if ( !$map_exists(L_MAP) ) //If map doesnt exist yet, display error message
+	{
+		messageall green L_MAP " does not exist on this server. Perhaps this is a future transition point?"
+	}
+	else
+	{
+		callexternal players ext_set_map L_MAP L_LOCAL_TRANS GM_DEST_TRANS //mark map quest data
+
+		if ( game.players > 1 )
+		{
+			local VOTE_TITLE "Travel to " L_MAP_TITLE "?"
+			local L_OPTIONS "Yes!:" L_MAP ";No!:" 0 //Im kinda shocked that this works. It concatenates each value to each other in L_OPTIONS
+
+			callexternal GAME_MASTER gm_create_vote gm_votemap L_OPTIONS VOTE_TITLE "Voting begins now!" 0
+		}
+		else
+		{
+			callevent gm_manual_map_change L_MAP
+		}
+	}
+}
+
+{ gm_manual_map_change //<map> [destspawn]
+
+	if !GM_CHANGELEVEL
+	setvard GM_DISABLE_TRANSITIONS 1 //tells msarea_transitions to disable code side, so they don't change spawns
+	setvard GM_CHANGELEVEL 1
+
+	setvard DEST_MAP PARAM1
+	local L_DEST_SPAWN PARAM2
+	if ( L_DEST_SPAWN equals 'PARAM2' ) local L_DEST_SPAWN GM_DEST_TRANS
+	
+	callexternal players ext_setspawn L_DEST_SPAWN
+	
+	local L_CMD "echo Changelevel: " DEST_MAP
+	servercmd L_CMD //Report changelevel to server
+
+	setvarg G_WEATHER_LOCK clear
+	setvarg global.map.weather "clear;clear;clear"
+	setvarg G_OVERRIDE_WEATHER_CODE "clear;clear;clear"
+	setvarg G_CUR_WEATHER "clear"
+	setvarg G_MAP_ADDPARAMS 0
+
+	if ( G_SERVER_LOCKED )
+	{
+		local L_CMD "sv_password " $quote() $quote()
+		servercmd L_CMD
+	}	
+
+	if ( game.players > 0 )
+	{
+		callexternal players ext_changelevel_prep //clears weather
+	}
+
+	local L_STR "TRAVELING TO " DEST_MAP
+	infomsg all L_STR "You will be reconnected shortly."
+	
+	setvard VOTE_IN_PROGRESS 0
+	
+	callevent 5.0 delay_changelevel
+}
+
+{ game_triggered //<map trigger fired>
+	dbg game_triggered PARAM1
+
+	local L_TRIG PARAM1
+
+	if !GM_CHANGELEVEL
+	if ( L_TRIG startswith touch_trans_ ) //This is used from invalid spawns. They try to take you back to the start of a gauntlet. 
+	{
+		local MAP_TO_VOTE $string_from(L_TRIG,touch_trans_)
+		
+		local VOTE_TITLE "Change to " MAP_TO_VOTE "?" //Create options for vote menu
+		local L_OPTIONS "Yes!:" MAP_TO_VOTE ";No!:" 0
+
+		callexternal GAME_MASTER gm_create_vote gm_votemap L_OPTIONS VOTE_TITLE "Voting begins now!" 0 //Send vote menu
+	}
+	else if ( L_TRIG startswith force_map_ )
+	{
+		local L_FORCEMAP $string_from(L_TRIG,force_map_)
+		callevent gm_manual_map_change L_FORCEMAP
+	}
+}

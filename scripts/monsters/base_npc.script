@@ -13,15 +13,12 @@
 	const SOUND_DEATH none
 }
 
-{
-   eventname game_spawn
+{ game_spawn
 
-	blood 	red		//Default blood
+	blood red		//Default blood
 
 	callevent npc_spawn //give splits second for vars to load
 	callevent 1.0 npc_post_spawn
-
-	if ( G_COMBAT_MUSIC isnot none ) setvard NPC_HAS_COMBAT_MUSIC 1
 
 	if ( G_CHRISTMAS_MODE )
 	{
@@ -65,21 +62,6 @@
 	//}
 	//if ( MY_RACE equals demon ) takedmg holy 3.0
 	setvard EFFECT_DAMAGE_DELAY 0
-
-	local MAP_NAME game.map.name
-	setvard CHEAT_MAP 0
-	//if ( MAP_NAME equals walltest ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals tower ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals weather_tower ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals scripts ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals scripts_out ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals scripts_demo ) setvard CHEAT_MAP 1
-	if ( MAP_NAME equals ms_npcscript_tutor ) setvard CHEAT_MAP 1
-
-//	if ( CHEAT_MAP ) 
-//	{
-//		skilllevel 0
-//	}
 }
 
 { game_postspawn //PARAM1 = (name|default), PARAM2 = DmgMulti, PARAM3 = HPMulti, PARAM4 = pass_params
@@ -157,7 +139,6 @@
 		//if ( $get(SCRIPT_ICECAGE,exists) ) deleteent SCRIPT_ICECAGE
 		clientevent update all SCRIPT_ICECAGE end_cage_fx
 		//playsound 0 5 debris/bustglass2.wav
-		//if ( FX_SPAMMERS < MAX_FX_SPAMMERS ) effect tempent gibs glassgibs.mdl $relpos(0,0,0) 1.0 30 10 10 1.0
 		setvard IN_ICECAGE 0
 	}
 

@@ -63,6 +63,7 @@
 }
 
 #include items/swords_base_twohanded
+#include items/base_vampire
 
 { weapon_spawn
 
@@ -79,20 +80,15 @@
 	setvard SWORD_CAN_PARRY 1
 }
 
-{ game_dodamage
+{ game_dodamage //PARAM1=hit:0|1 PARAM2=ent_hit PARAM3=(start) PARAM4=(end) PARAM5=DmgType PARAM6=DmgAmt
 
 	if !FIST_MODE
 	if PARAM1
-	if $can_damage(ent_owner,PARAM2)
-	if $get(PARAM2,race) isnot undead
-	if !$get(PARAM2,scriptvar,'IMMUNE_VAMPIRE')
 
 	local HP_TO_GIVE $get(ent_owner,maxhp)
 	multiply HP_TO_GIVE HP_RETURN_RATIO
 
-	dbg draining HP_TO_GIVE
-
-	givehp ent_owner HP_TO_GIVE
+	callevent try_vampire_target $get(ent_owner,id) $get(PARAM2,id) HP_TO_GIVE //<owner> <target> <healAmt>
 }
 
 { register_charge1
@@ -214,7 +210,7 @@
 
 	playviewanim  ANIM_LUNGE
 	playowneranim once axe_twohand_swing
-	playsound const.snd.weapon const.snd.maxvol SPECIAL01_SND
+	//playsound const.snd.weapon const.snd.maxvol SPECIAL01_SND
 }
 
 { game_+attack2

@@ -19,9 +19,7 @@
 
 #include [server] monsters/summon/base_aoe
 
-{ eventname game_dynamically_created //PARAM1 = owner PARAM2 = CircleDuration PARAM3 = Frost Duration PARAM4 = Damage
-
-	add FX_SPAMMERS 1
+{ game_dynamically_created //PARAM1 = owner PARAM2 = CircleDuration PARAM3 = Frost Duration PARAM4 = Damage
 
 	setvard MY_OWNER PARAM1
 	setvard MY_DURATION PARAM2
@@ -111,8 +109,6 @@
 
 { circle_end
 
-	subtract FX_SPAMMERS 1
-
 	clientevent remove all THIS_SCRIPT_CLIENT_ID
 	setvard CIRCLE_ON 0
 
@@ -124,6 +120,11 @@
 { circle_remove
 
 	deleteent ent_me
+}
+
+{ apply_aoe_effect //from base_aoe
+	if !$get(PARAM1,haseffect,DOT_cold)
+	applyeffect PARAM1 effects/effect_frostbite_dmg FROST_DURATION MY_OWNER MY_BASE_DAMAGE ACTIVE_SKILL
 }
 
 // ===========
@@ -209,14 +210,4 @@
 
 	setvard RAIN_SPRITES 0
 	removescript
-}
-
-{ game_death
-
-	setalive 1
-}
-
-{ apply_aoe_effect //from base_aoe
-	if !$get(PARAM1,haseffect,DOT_cold)
-	applyeffect PARAM1 effects/effect_frostbite_dmg FROST_DURATION MY_OWNER MY_BASE_DAMAGE ACTIVE_SKILL
 }

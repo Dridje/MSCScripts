@@ -5,16 +5,14 @@
 
 	//base_vendor
 	setvar STORE_CLOSED 0
-   	const STORE_NAME edana_armory
-   	const STORE_TRIGGERTEXT "store trade buy sell purchase sale offer"
+	const STORE_NAME edana_armory
+	const STORE_TRIGGERTEXT "store trade buy sell purchase sale offer"
 	const STORE_SELLMENU 1
 	const SELL_RATIO 0.75
 	const NO_RUMOR 1
 
 	const VEND_ARMORER 1
-
 	const NPC_REACTS 1
-
 	setvard VENDOR_NOT_ON_USE 1
 }
 
@@ -25,42 +23,37 @@
 #include helena/helena_npc
 
 // Spawn properties
-{
-   eventname npc_spawn
+{ npc_spawn
 
-   hp 25
-   gold 25
-   name        Iron Fist Ike, the Armourer
-   //ov 30
-   width 32
-   height 72
-   race human
-   roam 0      //Don't go roaming around
-   setmodel    npc/blacksmith.mdl
-   invincible  1
+	hp 25
+	gold 25
+	name "Iron Fist Ike, the Armourer"
+	//ov 30
+	width 32
+	height 72
+	race human
+	roam 0 //Don't go roaming around
+	setmodel npc/blacksmith.mdl
+	invincible  1
 
-   setvard 	JOB 0
-   setvard	CANCHAT 1
-   setvard	STORE_CLOSED 0
+	setvard JOB 0
+	setvard CANCHAT 1
+	setvard STORE_CLOSED 0
 
-   callevent createmystore
-
-	setvard THIS_MAP game.map.name
-	if ( THIS_MAP equals helena ) 
+	callevent createmystore
+	if ( $lcase(game.map.name) equals helena ) 
 	{
-		name Galhad, Dorfgan's Sales Rep
+		name "Galhad, Dorfgan's Sales Rep"
 		setvard NO_JOB 1
 	}
 
-   if THIS_MAP isnot helena
+	if $lcase(game.map.name) isnot helena
 
-   catchspeech say_hi hi hello hail greet hey
-   catchspeech say_job job work money gold
-   catchspeech say_yes yes sure "why not" ok sho whatever "of course" "tell me more"
-   catchspeech say_where abulurd where
-   catchspeech say_key key broken piece
-   //catchspeech say_closed "store trade buy sell purchase sale offer"
-
+	catchspeech say_hi hi hello hail greet hey
+	catchspeech say_job job work money gold
+	catchspeech say_yes yes sure "why not" ok sho whatever "of course" "tell me more"
+	catchspeech say_where abulurd where
+	catchspeech say_key key broken piece
 }
 
 ///////////////////////////////////////////////////////////
@@ -69,12 +62,12 @@
 
 { npcreact_targetsighted		//Respond to seeing player
 
-	if !GOT_SCARED  	
+	if !GOT_SCARED
 	if !STORE_CLOSED
 	if $get(PARAM1,dist) <= 90
 	if JOB.TARGET isnot PARAM1
 
-	if( JOB.WINNER isnot PARAM1 )
+	if ( JOB.WINNER isnot PARAM1 )
 	{
 		saytext Howdy! How about a trade?
 	}
@@ -89,45 +82,30 @@
   	if $get(ent_lastspoke,dist) <= 90
   	if !STORE_CLOSED
 
-  	saytext 'Ello there.  Would you like to [buy] some fine armor, traveler?
+  	saytext "'Ello there.  Would you like to [buy] some fine armor, traveler?"
 }
 
-{
-   eventname vendor_addstoreitems
+{ vendor_addstoreitems
 
-   //           |Store name|   |Item name|	       |Quantity|	|cost| |Sell ratio|
-   addstoreitem  STORE_NAME	skin_ratpelt	 	0		100	1.0
-   addstoreitem  STORE_NAME     skin_boar		0		100	1.0
-   addstoreitem  STORE_NAME     skin_boar_heavy	 	0		100	1.0
-   addstoreitem  STORE_NAME     skin_bear	 	0		100	1.0
+	//           |Store name|   |Item name|	       |Quantity|	|cost| |Sell ratio|
+	addstoreitem  STORE_NAME     armor_leather_torn 	$rand(1,2)	100	SELL_RATIO
+	addstoreitem  STORE_NAME     armor_leather		$rand(1,2)	100	SELL_RATIO
+	addstoreitem  STORE_NAME     armor_leather_studded	$rand(0,1)	100	SELL_RATIO
+	addstoreitem  STORE_NAME     armor_plate   	 	$rand(0,2)	125	SELL_RATIO
+	addstoreitem  STORE_NAME     armor_helm_plate 	$rand(0,2)	125	SELL_RATIO
+	
+	addstoreitem  STORE_NAME     skin_boar 0 150 0.75
+	addstoreitem  STORE_NAME     skin_ratpelt 0 250 0.75
+	addstoreitem  STORE_NAME     skin_bear 0 150 1
+	addstoreitem  STORE_NAME     skin_boar_heavy	0 150 1
 
-   addstoreitem  STORE_NAME     armor_leather_torn 	$rand(1,2)	100	SELL_RATIO
-   addstoreitem  STORE_NAME     armor_leather		$rand(1,2)	100	SELL_RATIO
-   addstoreitem  STORE_NAME     armor_leather_studded	$rand(0,1)	100	SELL_RATIO
-   addstoreitem  STORE_NAME     armor_plate   	 	$rand(0,2)	125	SELL_RATIO
-   addstoreitem  STORE_NAME     armor_helm_plate 	$rand(0,2)	125	SELL_RATIO
-  
+	addstoreitem  STORE_NAME     shields_ironshield  	$rand(0,3)	100	0.25
+	addstoreitem  STORE_NAME     shields_buckler  	$rand(0,3)	100	SELL_RATIO
 
-   //addstoreitem  STORE_NAME     shields_training  	6		100	SELL_RATIO
-   //addstoreitem  STORE_NAME     shields_buckler   	0		100	SELL_RATIO
-   addstoreitem  STORE_NAME     shields_ironshield  	$rand(0,3)	100	0.25
-   addstoreitem  STORE_NAME     shields_buckler  	$rand(0,3)	100	SELL_RATIO
-   //addstoreitem  STORE_NAME     shields_heater    	0		100	SELL_RATIO
-
-   addstoreitem  STORE_NAME     gown_edana		10		100	SELL_RATIO
-
-   if( $rand(0,3) == 0 ) addstoreitem  STORE_NAME     armor_golden	0		100	SELL_RATIO
-   if( $rand(0,3) == 0 ) addstoreitem  STORE_NAME     armor_helm_golden 0		100	SELL_RATIO
-   if( $rand(0,2) == 0 ) addstoreitem  STORE_NAME     armor_dark	0		100	SELL_RATIO
-   if( $rand(0,2) == 0 ) addstoreitem  STORE_NAME     armor_helm_dark	0		100	SELL_RATIO
-
-   //addstoreitem  STORE_NAME     armor_thief	$rand(0,1)	100	SELL_RATIO
-   //addstoreitem  STORE_NAME     armor_lenmyr	0		100	SELL_RATIO
-   //addstoreitem  STORE_NAME     shields_runeshield  0		100	SELL_RATIO
-   //addstoreitem  STORE_NAME     armor_leather3	0		100	SELL_RATIO
+	addstoreitem  STORE_NAME     gown_edana		10		100	SELL_RATIO
 }
 
-{  trade_success
+{ trade_success
 
    if CANCHAT == 1
 
@@ -138,27 +116,26 @@
 }
 
 { resetchat
-  setvard CANCHAT 1
+	setvard CANCHAT 1
 }
-
 
 { say_job
 
-  	if( JOB == 0 )
+  	if ( JOB == 0 )
 	{
   		setvard JOB 1
-  		saytext Well you do look strong enough, I could always use a short-term errand-runner. Are ye interested?
+  		saytext "Well you do look strong enough, I could always use a short-term errand-runner. Are ye interested?"
 		menu.open ent_lastspoke
   		callevent 300 reset_job
 	}
-	else if( JOB.TARGET isnot $get(ent_lastspoke,id) )
+	else if ( JOB.TARGET isnot $get(ent_lastspoke,id) )
 	{
 		if $get(JOB.TARGET,id) isnot PARAM1
 		playanim once no
-  		saytext Sorry, Ive already got me an errand boy. If you see $get(JOB.TARGET,name) tell him to hurry it up!
+  		saytext "Sorry, Ive already got me an errand boy. If you see" $get(JOB.TARGET,name) "tell him to hurry it up!"
 	}
 
-	if ( JOB >= 3 ) saytext Sorry, think I've got all the help I need for today.
+	if ( JOB >= 3 ) saytext "Sorry, think I've got all the help I need for today."
 }
 
 { reset_job
@@ -180,31 +157,31 @@
 { say_where
 
   	if JOB.SPEECH1 equals 1
-  	saytext Abulurd? Why he's outside of town in his house. On the path between here and the Temple.
+  	saytext "Abulurd? Why he's outside of town in his house. On the path between here and the Temple."
 }
 
 { quest_log_done
 
-	saytext Hmmm... this does look like a good set. I'll have him send over the rest.
+	saytext "Hmmm... this does look like a good set. I'll have him send over the rest."
 	setvard script.questlog.target PARAM1
 	callevent 4 quest_log_done_2
 }
 { quest_log_done_2
 
-  	saytext Well here's something for your trouble.
+  	saytext "Well here's something for your trouble."
   	offer script.questlog.target gold 6
  	callevent 4 quest_ledger_start
 }
 
 { quest_ledger_start
 	
-  	saytext Head back over to Abulurd and ask if he has the ledger I asked him about yesterday.
+  	saytext "Head back over to Abulurd and ask if he has the ledger I asked him about yesterday."
   	setvard JOB 2
 	callexternal $get_by_name(abulurd) global_quest_ledger
 }
 { quest_ledger_done
 
-	saytext Yep, this is it. Thanks for your help $get(PARAM1,name)
+	saytext "Yep, this is it. Thanks for your help" $get(PARAM1,name)
 	offer PARAM1 gold 6
 	setvard JOB 3
 	setvard JOB.TARGET ''
@@ -214,7 +191,7 @@
 { quest_boar_done
 
 	//Continuing the Boar quest from Abulurd, the old man
-	saytext Aah! What's this?
+	saytext "Aah! What's this?"
 	setvard questboar.target PARAM1
 	playanim critical studycart
 	callevent 1 quest_boar_done_2
@@ -227,7 +204,7 @@
 }
 { quest_boar_done_3
 
-	saytext Stay here for a second and I'll make something out of it.
+	saytext "Stay here for a second and I'll make something out of it."
 	setvard questboar.angle game.monster.angles.yaw
 	callevent 1 quest_boar_done_4
 }
@@ -245,44 +222,22 @@
   	offer questboar.target armor_leather_torn
 }
 
-{ worldevent_time
-
-   if( PARAM1 >= 22 )
-   {
-	setvard STORE_CLOSED 1
-   }
-   if( PARAM1 < 7 )
-   {
-	setvard STORE_CLOSED 1
-   }
-   if( PARAM1 >= 7 )
-   {
-	   if( PARAM1 < 22 )
-	   {
-		   setvard STORE_CLOSED 0
-	   }
-   }
-}
-
 { say_closed
 
-   saytext Sorry, I'm closed. I will reopen at seven in the morning
+   saytext "Sorry, I'm closed. I will reopen at seven in the morning"
 }
 
 {  [override] vendor_offerstore		//1: Offer Target
 
   	if $get(PARAM1,dist) <= 90
 
-	if( STORE_CLOSED )	saytext Sorry, I'm closed. I will reopen at seven in the morning
-	else
-	{
-   		callevent basevendor_offerstore PARAM1
-	}
+	if ( STORE_CLOSED )	saytext "Sorry, I'm closed. I will reopen at seven in the morning"
+	else callevent basevendor_offerstore PARAM1
 }
 
 { game_menu_getoptions
 
-	if THIS_MAP isnot helena
+	if $lcase(game.map.name) isnot helena
 
 	if( JOB == 1 )
 	{
@@ -311,7 +266,7 @@
 		}
 		else callevent menuitem_where
 	}
-	else if( JOB == 2 )
+	else if ( JOB == 2 )
 	{
 		if( $item_exists(PARAM1,item_ledger) )
 		{
@@ -345,6 +300,7 @@
 		menuitem.register
 		setvard HAS_KEYPARTS 1
 	}
+	
 	if ( $item_exists(PARAM1,brokenkey_2) )
 	{
 		local reg.mitem.id	payment
@@ -384,7 +340,7 @@
 				local reg.mitem.id	payment
 				local reg.mitem.title 	"Pay 10,000 to reforge key"
 				local reg.mitem.type 	payment
-				local reg.mitem.data 	gold: 10000
+				local reg.mitem.data 	"gold:10000"
 				local reg.mitem.callback  start_forge_key
 				local reg.mitem.cb_failed not_enough_forge_key
 				menuitem.register
@@ -486,12 +442,11 @@
 	saytext "Mmm hmm... Fancy lookin key this hilt belongs to, no doubt."
 	if ( GOT_KEYPART_2 )
 	{
-			if ( GOT_KEYPART_3 )
-			{
-				saytext "Alright, got all the pieces, now I just need that labor charge..."
-			}
+		if ( GOT_KEYPART_3 )
+		{
+			saytext "Alright, got all the pieces, now I just need that labor charge..."
+		}
 	}
-
 }
 
 { got_part_2
@@ -501,10 +456,10 @@
 	saytext "Yeah, I bet this key is supposed to open somethin really valuable..."
 	if ( GOT_KEYPART_1 )
 	{
-			if ( GOT_KEYPART_3 )
-			{
-				saytext "Alright, got all the pieces, now I just need that labor charge..."
-			}
+		if ( GOT_KEYPART_3 )
+		{
+			saytext "Alright, got all the pieces, now I just need that labor charge..."
+		}
 	}
 }
 
@@ -515,10 +470,10 @@
 	saytext "These are about the fanciest lookin key bits Ive ever seen..."
 	if ( GOT_KEYPART_1 )
 	{
-			if ( GOT_KEYPART_2 )
-			{
-				saytext "Alright, got all the pieces, now I just need that labor charge..."
-			}
+		if ( GOT_KEYPART_2 )
+		{
+			saytext "Alright, got all the pieces, now I just need that labor charge..."
+		}
 	}
 }
 
